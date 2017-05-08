@@ -1,0 +1,40 @@
+{
+  "name": "tar-utils",
+  "version": "1.0.0",
+  "description": "A collection of utilities which expose oft-used patterns when working with tar archives in node",
+  "main": "build/index.js",
+  "types": "lib/index.ts",
+  "scripts": {
+    "test": "gulp test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/resin-io-modules/tar-utils.git"
+  },
+  "author": "Cameron Diver <cameron@resin.io>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/resin-io-modules/tar-utils/issues"
+  },
+  "homepage": "https://github.com/resin-io-modules/tar-utils#readme",
+  "dependencies": {
+    "@types/bluebird": "^3.5.3",
+    "@types/node": "^7.0.18",
+    "bluebird": "^3.5.0",
+    "tar-stream": "^1.5.2"
+  },
+  "devDependencies": {
+    "@types/chai": "^3.5.2",
+    "@types/mocha": "^2.2.41",
+    "chai": "^3.5.0",
+    "gulp": "^3.9.1",
+    "gulp-clean": "^0.3.2",
+    "gulp-mocha": "^4.3.1",
+    "gulp-sourcemap": "^1.0.1",
+    "gulp-typescript": "^3.1.6",
+    "gulp-util": "^3.0.8",
+    "mocha": "^3.3.0",
+    "ts-node": "^3.0.4",
+    "typescript": "^2.3.2"
+  }
+}
