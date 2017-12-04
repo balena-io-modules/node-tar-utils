@@ -1,6 +1,5 @@
-import * as Promise from 'bluebird'
-import * as path from 'path'
-import * as tar from 'tar-stream'
+import * as Promise from 'bluebird';
+import * as path from 'path';
 
 /**
  * normalizeTarEntry: Depending on how the tar archive was created,
@@ -12,11 +11,11 @@ import * as tar from 'tar-stream'
  *  * ./a/b/Dockerfile -> a/b/Dockerfile
  */
 export function normalizeTarEntry(name: string): string {
-  const normalized = path.normalize(name)
-  if (path.isAbsolute(normalized)) {
-    return normalized.substr(normalized.indexOf('/') + 1)
-  }
-  return normalized
+	const normalized = path.normalize(name);
+	if (path.isAbsolute(normalized)) {
+		return normalized.substr(normalized.indexOf('/') + 1);
+	}
+	return normalized;
 }
 
 /**
@@ -25,10 +24,10 @@ export function normalizeTarEntry(name: string): string {
  * @param size
  */
 export function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
-  return new Promise<Buffer>((resolve, reject) => {
-    let buffer: Buffer = new Buffer('')
-    stream.on('data', (data: Buffer) => buffer = Buffer.concat([buffer, data]))
-    stream.on('end', () => resolve(buffer))
-    stream.on('error', reject)
-  })
+	return new Promise<Buffer>((resolve, reject) => {
+		let buffer: Buffer = new Buffer('');
+		stream.on('data', (data: Buffer) => buffer = Buffer.concat([buffer, data]));
+		stream.on('end', () => resolve(buffer));
+		stream.on('error', reject);
+	});
 }
