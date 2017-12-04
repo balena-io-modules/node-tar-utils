@@ -20,8 +20,7 @@
   "dependencies": {
     "@types/bluebird": "^3.5.3",
     "@types/node": "^7.0.18",
-    "bluebird": "^3.5.0",
-    "tar-stream": "^1.5.2"
+    "bluebird": "^3.5.0"
   },
   "devDependencies": {
     "@types/chai": "^3.5.2",
