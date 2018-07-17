@@ -24,10 +24,10 @@ export function normalizeTarEntry(name: string): string {
  * @param size
  */
 export function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
-	return new Promise<Buffer>((resolve, reject) => {
-		let buffer: Buffer = new Buffer('');
-		stream.on('data', (data: Buffer) => buffer = Buffer.concat([buffer, data]));
-		stream.on('end', () => resolve(buffer));
+	return new Promise<Buffer[]>((resolve, reject) => {
+		const chunks: Buffer[] = [];
+		stream.on('data', (data: Buffer) => chunks.push(data));
+		stream.on('end', () => resolve(chunks));
 		stream.on('error', reject);
-	});
+	}).then(Buffer.concat);
 }
