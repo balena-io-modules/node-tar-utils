@@ -19,21 +19,47 @@ import { Readable, Writable, PassThrough } from 'stream';
 
 import * as Bluebird from 'bluebird';
 import * as fs from 'fs';
-import * as path from 'path';
 import * as tar from 'tar-stream';
 
 import * as TarUtils from '../lib';
 
 describe('Simple utils', () => {
 	it('should correctly normalize a tar entry', done => {
-		const fn = TarUtils.normalizeTarEntry;
-		expect(fn('Dockerfile')).to.equal('Dockerfile');
-		expect(fn('./Dockerfile')).to.equal('Dockerfile');
-		expect(fn('../Dockerfile')).to.equal(`..${path.sep}Dockerfile`);
-		expect(fn('/Dockerfile')).to.equal('Dockerfile');
-		expect(fn('./a/b/Dockerfile')).to.equal(
-			`a${path.sep}b${path.sep}Dockerfile`,
-		);
+		const testCases = [
+			// input, expected output
+			// a slash is also programmatically appended to every input test case
+			['', ''],
+			['.', '.'],
+			['..', '..'],
+			['/', '.'],
+			['/.', '.'],
+			['/..', '.'], // root's parent? hmm
+			['Dockerfile', 'Dockerfile'],
+			['./Dockerfile', 'Dockerfile'],
+			['../Dockerfile', `../Dockerfile`],
+			['/Dockerfile', 'Dockerfile'],
+			['./a/b/Dockerfile', `a/b/Dockerfile`],
+			['./a/../b/Dockerfile', `b/Dockerfile`],
+			['///a//b/Dockerfile', `a/b/Dockerfile`],
+			['a/./b/Dockerfile', `a/b/Dockerfile`],
+		];
+		for (let [input, expected] of testCases) {
+			let result = TarUtils.normalizeTarEntry(input);
+			expect(result).to.equal(
+				expected,
+				`normalizeTarEntry('${input}') returned '${result}', expected '${expected}'`,
+			);
+			if (input === '') {
+				continue;
+			}
+			// adding a trailing slash to the input should not alter the output
+			input += '/';
+			result = TarUtils.normalizeTarEntry(input);
+			expect(result).to.equal(
+				expected,
+				`normalizeTarEntry('${input}') returned '${result}' expected '${expected}'`,
+			);
+		}
 		done();
 	});
 
@@ -124,7 +150,7 @@ describe('multicastStream', function() {
 		const nStreams = 3;
 		for (let i = 0; i < nStreams; ++i) {
 			toStreams.push(
-				new MockWritable({ highWaterMark: hwm / (i + 1) }, i * 10),
+				new MockWritable({ highWaterMark: Math.ceil(hwm / (i + 1)) }, i * 10),
 			);
 		}
 
