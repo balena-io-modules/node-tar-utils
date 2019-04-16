@@ -15,11 +15,10 @@
  * limitations under the License.
  */
 import * as Bluebird from 'bluebird';
+import * as _ from 'lodash';
 import * as path from 'path';
 import * as tar from 'tar-stream';
 import { Readable, Writable } from 'stream';
-
-const noop = () => {};
 
 /**
  * normalizeTarEntry: Depending on how the tar archive was created,
@@ -29,13 +28,21 @@ const noop = () => {};
  *  * /Dockerfile -> Dockerfile
  *  * Dockerfile -> Dockerfile
  *  * ./a/b/Dockerfile -> a/b/Dockerfile
+ *  * foo/bar/ -> foo/bar/
+ *  * foo/bar/ -> foo/bar
+ * See additional input/output examples in tests.ts
  */
 export function normalizeTarEntry(name: string): string {
-	const normalized = path.normalize(name);
-	if (path.isAbsolute(normalized)) {
-		return normalized.substr(normalized.indexOf(path.sep) + 1);
+	if (!name) {
+		return '';
 	}
-	return normalized;
+	// Use the posix.normalize function under a non-POSIX platform/OS like
+	// Windows, because a tar file/stream always uses '/' as path separator
+	// (regardless of platform/OS) as per spec:
+	// https://www.gnu.org/software/tar/manual/html_node/Standard.html
+	// Also remove leading/trailing slashes and return '.' in place of an
+	// empty string (provided the input was not an empty string).
+	return _.trim(path.posix.normalize(name), '/') || '.';
 }
 
 /**
@@ -55,9 +62,9 @@ export function streamToBuffer(stream: Readable): Bluebird<Buffer> {
 	})
 		.then(Buffer.concat)
 		.finally(() => {
-			stream.removeListener('data', onData || noop);
-			stream.removeListener('error', onError || noop);
-			stream.removeListener('end', onEnd || noop);
+			stream.removeListener('data', onData || _.noop);
+			stream.removeListener('error', onError || _.noop);
+			stream.removeListener('end', onEnd || _.noop);
 		});
 }
 
@@ -77,8 +84,8 @@ export function drainStream(stream: Readable): Bluebird<void> {
 		stream.on('end', (onEnd = resolve));
 		stream.resume();
 	}).finally(() => {
-		stream.removeListener('error', onError || noop);
-		stream.removeListener('end', onEnd || noop);
+		stream.removeListener('error', onError || _.noop);
+		stream.removeListener('end', onEnd || _.noop);
 	});
 }
 
@@ -104,9 +111,9 @@ export function pipePromise<WritableSub extends Writable>(
 		pipeTo.on('finish', (onFinish = () => resolve(pipeTo)));
 		pipeFrom.pipe(pipeTo);
 	}).finally(() => {
-		pipeFrom.removeListener('error', onError || noop);
-		pipeTo.removeListener('error', onError || noop);
-		pipeTo.removeListener('finish', onFinish || noop);
+		pipeFrom.removeListener('error', onError || _.noop);
+		pipeTo.removeListener('error', onError || _.noop);
+		pipeTo.removeListener('finish', onFinish || _.noop);
 	});
 }
 
@@ -170,8 +177,8 @@ export function cloneTarStream(
 		});
 		sourceTarStream.pipe(extract);
 	}).finally(() => {
-		sourceTarStream.removeListener('error', sourceTarStreamOnError || noop);
-		pack.removeListener('error', packOnError || noop);
+		sourceTarStream.removeListener('error', sourceTarStreamOnError || _.noop);
+		pack.removeListener('error', packOnError || _.noop);
 	});
 }
 
@@ -207,7 +214,7 @@ export function multicastStream(
 				let onFinish: () => void;
 				return new Bluebird(toStreamResolve =>
 					toStream.on('finish', (onFinish = toStreamResolve)),
-				).finally(() => toStream.removeListener('finish', onFinish || noop));
+				).finally(() => toStream.removeListener('finish', onFinish || _.noop));
 			}),
 		)
 			.then(() => resolve())
@@ -219,9 +226,9 @@ export function multicastStream(
 			fromStream.pipe(toStream);
 		}
 	}).finally(() => {
-		fromStream.removeListener('error', onError || noop);
+		fromStream.removeListener('error', onError || _.noop);
 		toStreams.forEach(toStream =>
-			toStream.removeListener('error', onError || noop),
+			toStream.removeListener('error', onError || _.noop),
 		);
 	});
 }
