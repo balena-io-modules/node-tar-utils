@@ -17,8 +17,8 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 import * as path from 'path';
-import * as tar from 'tar-stream';
 import { Readable, Writable } from 'stream';
+import * as tar from 'tar-stream';
 
 /**
  * normalizeTarEntry: Depending on how the tar archive was created,
@@ -198,7 +198,7 @@ export function multicastStream(
 	fromStream: Readable,
 	toStreams: Writable[],
 ): Bluebird<void> {
-	if (toStreams.length == 0) {
+	if (toStreams.length === 0) {
 		return Bluebird.resolve();
 	}
 	let onError: (error: Error) => void;

@@ -3,12 +3,13 @@
   "version": "2.0.0",
   "description": "A collection of utilities which expose oft-used patterns when working with tar archives in node",
   "main": "build/index.js",
-  "types": "lib/index.ts",
+  "types": "build/index.d.ts",
   "scripts": {
-    "test": "gulp test",
-    "prettify": "prettier --config ./node_modules/resin-lint/config/.prettierrc --write \"{lib,tests}/**/*.ts\"",
+    "test": "npm run lint && gulp test",
+    "lint": "resin-lint --typescript lib tests",
+    "prettify": "resin-lint --typescript --fix lib tests",
     "prepublish": "require-npm4-to-publish",
-    "prepublishOnly": "tsc && npm run test"
+    "prepare": "tsc"
   },
   "repository": {
     "type": "git",
@@ -21,17 +22,17 @@
   },
   "homepage": "https://github.com/resin-io-modules/node-tar-utils#readme",
   "dependencies": {
-    "bluebird": "^3.5.0",
-    "lodash": "^4.17.11",
-    "tar-stream": "^1.6.2"
+    "bluebird": "^3.7.2",
+    "lodash": "^4.17.15",
+    "tar-stream": "^2.1.0"
   },
   "devDependencies": {
-    "@types/bluebird": "^3.5.3",
+    "@types/bluebird": "^3.5.30",
     "@types/chai": "^3.5.2",
-    "@types/lodash": "4.14.123",
+    "@types/lodash": "^4.14.149",
     "@types/mocha": "^2.2.41",
-    "@types/node": "^10.12.26",
-    "@types/tar-stream": "1.6.0",
+    "@types/node": "^10.17.17",
+    "@types/tar-stream": "^2.1.0",
     "chai": "^3.5.0",
     "gulp": "^3.9.1",
     "gulp-clean": "^0.3.2",
@@ -40,10 +41,9 @@
     "gulp-typescript": "^3.1.6",
     "gulp-util": "^3.0.8",
     "mocha": "^3.3.0",
-    "prettier": "^1.15.3",
     "require-npm4-to-publish": "^1.0.0",
-    "resin-lint": "^2.0.1",
-    "ts-node": "^3.0.4",
-    "typescript": "^2.3.2"
+    "resin-lint": "^3.3.1",
+    "ts-node": "^7.0.1",
+    "typescript": "^3.8.3"
   }
 }
