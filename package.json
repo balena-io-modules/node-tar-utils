@@ -1,6 +1,6 @@
 {
   "name": "tar-utils",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "A collection of utilities which expose oft-used patterns when working with tar archives in node",
   "main": "build/index.js",
   "types": "build/index.d.ts",
