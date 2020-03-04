@@ -1,10 +1,10 @@
 const gulp = require('gulp')
 const gutil = require('gulp-util')
-const gclean = require('gulp-clean')
+require('gulp-clean')
 const gmocha = require('gulp-mocha')
 const typescript = require('gulp-typescript')
 const sourcemaps = require('gulp-sourcemaps')
-const tsnode = require('ts-node/register')
+require('ts-node/register/transpile-only')
 const tsProject = typescript.createProject('tsconfig.json')
 
 const OPTIONS = {
@@ -22,7 +22,7 @@ gulp.task('test', () => {
 	gulp.src('tests/tests.ts')
 	.pipe(gmocha({
 		compilers: [
-			'ts:ts-node/register'
+			'ts:ts-node/register/transpile-only'
 		]
 	}))
 })
@@ -42,4 +42,3 @@ gulp.task('typescript', () => {
 
 gulp.task('build', ['typescript'])
 gulp.task('default', ['build'])
-

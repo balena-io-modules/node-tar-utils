@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 import { expect } from 'chai';
-import { Readable, Writable, PassThrough } from 'stream';
+import { PassThrough, Readable, Writable } from 'stream';
 
 import * as Bluebird from 'bluebird';
 import * as fs from 'fs';
@@ -86,7 +86,7 @@ describe('pipeStream', function() {
 		const fromStream = new MockReadable({ highWaterMark: hwm }, sourceBuf);
 		const toStream = new MockWritable({ highWaterMark: hwm });
 
-		return TarUtils.pipePromise(fromStream, toStream).then(toStream => {
+		return TarUtils.pipePromise(fromStream, toStream).then(() => {
 			const destBuf = Buffer.concat(toStream.chunks);
 			expect(sourceBuf.compare(destBuf)).to.equal(0);
 		});
@@ -123,7 +123,7 @@ describe('cloneTarStream', function() {
 					'entry',
 					(header: tar.Headers, stream: Readable, callback: () => void) => {
 						try {
-							let [expectedName, expectedSize] = expectedEntries[i++];
+							const [expectedName, expectedSize] = expectedEntries[i++];
 							expect(header.name).to.equal(expectedName);
 							expect(header.size).to.equal(expectedSize);
 						} catch (error) {
@@ -208,8 +208,8 @@ describe('multicastStream', function() {
 });
 
 class MockReadable extends Readable {
-	readCount = 0;
-	index = 0;
+	public readCount = 0;
+	public index = 0;
 
 	constructor(
 		opts: object,
@@ -218,7 +218,7 @@ class MockReadable extends Readable {
 	) {
 		super(opts);
 	}
-	_read(size: number) {
+	public _read(size: number) {
 		if (this.readCount++ === this.errorOnCount) {
 			this.emit('error', new Error(`read count is ${this.errorOnCount}`));
 		} else {
@@ -239,14 +239,14 @@ class MockReadable extends Readable {
 }
 
 class MockWritable extends Writable {
-	writeCount = 0;
-	chunks: Buffer[] = [];
+	public writeCount = 0;
+	public chunks: Buffer[] = [];
 
 	constructor(opts: object, public delay = 0, public errorOnCount = -1) {
 		super(opts);
 	}
 
-	_write(
+	public _write(
 		chunk: Buffer,
 		_encoding: any,
 		callback: (error: Error | null) => void,
