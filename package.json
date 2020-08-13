@@ -34,7 +34,7 @@
     "@types/node": "^10.17.17",
     "@types/tar-stream": "^2.1.0",
     "chai": "^3.5.0",
-    "gulp": "^3.9.1",
+    "gulp": "^4.0.2",
     "gulp-clean": "^0.3.2",
     "gulp-mocha": "^4.3.1",
     "gulp-sourcemap": "^1.0.1",
