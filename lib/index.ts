@@ -28,9 +28,10 @@ import * as tar from 'tar-stream';
  *  * /Dockerfile -> Dockerfile
  *  * Dockerfile -> Dockerfile
  *  * ./a/b/Dockerfile -> a/b/Dockerfile
- *  * foo/bar/ -> foo/bar/
  *  * foo/bar/ -> foo/bar
+ *  * foo/bar -> foo/bar
  * See additional input/output examples in tests.ts
+ * @param name A POSIX file or directory path (i.e. using '/' as path separator)
  */
 export function normalizeTarEntry(name: string): string {
 	if (!name) {

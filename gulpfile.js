@@ -18,16 +18,16 @@ gulp.task('clean', () => {
 	return gulp.src(OPTIONS.dirs.build, { read: false })
 })
 
-gulp.task('test', () => {
+gulp.task('test', () =>
 	gulp.src('tests/tests.ts')
 	.pipe(gmocha({
 		compilers: [
 			'ts:ts-node/register/transpile-only'
 		]
 	}))
-})
+)
 
-gulp.task('typescript', () => {
+gulp.task('typescript', () =>
 	tsProject.src()
 	.pipe(sourcemaps.init())
 	.pipe(tsProject()).on('error', gutil.log)
@@ -37,8 +37,7 @@ gulp.task('typescript', () => {
 		rootDir: '.'
 	}))
 	.pipe(gulp.dest(OPTIONS.dirs.build))
+)
 
-})
-
-gulp.task('build', ['typescript'])
-gulp.task('default', ['build'])
+gulp.task('build', gulp.series('typescript'))
+gulp.task('default', gulp.series('build'))
