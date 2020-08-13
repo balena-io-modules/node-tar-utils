@@ -24,7 +24,7 @@
   "dependencies": {
     "bluebird": "^3.7.2",
     "lodash": "^4.17.15",
-    "tar-stream": "^2.1.0"
+    "tar-stream": "2.1.1"
   },
   "devDependencies": {
     "@types/bluebird": "^3.5.30",
