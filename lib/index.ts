@@ -141,6 +141,13 @@ export function cloneTarStream(
 ): Bluebird<tar.Pack> {
 	const extract = tar.extract();
 	const pack = tar.pack();
+	const origPush = pack.push;
+	pack.push = function() {
+		origPush.apply(this, arguments);
+		// Disable backpressure as we want to buffer everything in memory in order to
+		// ensure we trigger any listeners/etc that may be on the stream
+		return true;
+	};
 	let packOnError: (error: Error) => void;
 	let sourceTarStreamOnError: (error: Error) => void;
 	return new Bluebird<tar.Pack>((resolve, reject) => {
