@@ -19,7 +19,9 @@ import * as path from 'path';
 import { Readable, Writable } from 'stream';
 import * as tar from 'tar-stream';
 
-function noop() {}
+function noop() {
+	// noop
+}
 
 /**
  * normalizeTarEntry: Depending on how the tar archive was created,
