@@ -145,7 +145,7 @@ export function cloneTarStream(
 	const extract = tar.extract();
 	const pack = tar.pack();
 	const origPush = pack.push;
-	pack.push = function() {
+	pack.push = function () {
 		origPush.apply(this, arguments);
 		// Disable backpressure as we want to buffer everything in memory in order to
 		// ensure we trigger any listeners/etc that may be on the stream
@@ -168,7 +168,7 @@ export function cloneTarStream(
 						callback,
 					);
 				} else {
-					streamToBuffer(stream).then(buf => {
+					streamToBuffer(stream).then((buf) => {
 						pack.entry(header, buf, callback);
 					});
 				}
@@ -223,7 +223,7 @@ export function multicastStream(
 		Bluebird.all(
 			toStreams.map((toStream: Writable) => {
 				let onFinish: () => void;
-				return new Bluebird(toStreamResolve =>
+				return new Bluebird((toStreamResolve) =>
 					toStream.on('finish', (onFinish = toStreamResolve)),
 				).finally(() => toStream.removeListener('finish', onFinish || noop));
 			}),
@@ -238,7 +238,7 @@ export function multicastStream(
 		}
 	}).finally(() => {
 		fromStream.removeListener('error', onError || noop);
-		toStreams.forEach(toStream =>
+		toStreams.forEach((toStream) =>
 			toStream.removeListener('error', onError || noop),
 		);
 	});

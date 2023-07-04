@@ -24,7 +24,7 @@ import * as tar from 'tar-stream';
 import * as TarUtils from '../lib';
 
 describe('Simple utils', () => {
-	it('should correctly normalize a tar entry', done => {
+	it('should correctly normalize a tar entry', (done) => {
 		const testCases = [
 			// input, expected output
 			// a slash is also programmatically appended to every input test case
@@ -63,14 +63,14 @@ describe('Simple utils', () => {
 		done();
 	});
 
-	it('should read a stream to a buffer', done => {
+	it('should read a stream to a buffer', (done) => {
 		const readable = new PassThrough();
 
 		readable.write('test-string');
 		readable.end();
 
 		TarUtils.streamToBuffer(readable)
-			.then(buf => {
+			.then((buf) => {
 				expect(buf.toString()).to.equal('test-string');
 				done();
 			})
@@ -78,7 +78,7 @@ describe('Simple utils', () => {
 	});
 });
 
-describe('pipeStream', function() {
+describe('pipeStream', function () {
 	const hwm = 16333; // high water mark
 	const sourceBuf = Buffer.alloc(71000, '0123456789');
 
@@ -93,7 +93,7 @@ describe('pipeStream', function() {
 	});
 });
 
-describe('cloneTarStream', function() {
+describe('cloneTarStream', function () {
 	const hwm = 16333; // high water mark
 
 	it('should successfully clone a tar file', () => {
@@ -139,7 +139,7 @@ describe('cloneTarStream', function() {
 	});
 });
 
-describe('multicastStream', function() {
+describe('multicastStream', function () {
 	this.timeout(60000);
 	const sourceBuf = Buffer.alloc(71011, '0123456789');
 	const hwm = 16384; // high water mark
