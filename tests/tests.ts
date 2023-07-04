@@ -114,7 +114,7 @@ describe('cloneTarStream', function () {
 		];
 
 		return TarUtils.cloneTarStream(sourceTarStream).then((pack: tar.Pack) => {
-			return new Bluebird((resolve, reject) => {
+			return new Promise((resolve, reject) => {
 				let i = 0;
 				const extract = tar.extract();
 				pack.on('error', reject);
