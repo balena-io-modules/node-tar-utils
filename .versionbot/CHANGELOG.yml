@@ -1,4 +1,15 @@
 - commits:
+    - subject: Update to tar-stream 3.1.6
+      hash: 082499aeab9048414869b0d6d8960b7913a11dbb
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 3.0.2
+  title: ""
+  date: 2023-07-05T15:51:44.966Z
+- commits:
     - subject: Fix `cloneTarStream` when passing `onEntry` option
       hash: 59cbcd1f9b51fd05619abfa3887d94417e431ba1
       body: ""

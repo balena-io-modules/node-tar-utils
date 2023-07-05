@@ -1,6 +1,6 @@
 {
   "name": "tar-utils",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "A collection of utilities which expose oft-used patterns when working with tar archives in node",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -49,6 +49,6 @@
     "node": ">=16.13.0"
   },
   "versionist": {
-    "publishedAt": "2023-07-05T15:24:10.404Z"
+    "publishedAt": "2023-07-05T15:51:45.030Z"
   }
 }
