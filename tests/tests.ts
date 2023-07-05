@@ -24,7 +24,7 @@ import * as tar from 'tar-stream';
 import * as TarUtils from '../lib';
 
 describe('Simple utils', () => {
-	it('should correctly normalize a tar entry', done => {
+	it('should correctly normalize a tar entry', () => {
 		const testCases = [
 			// input, expected output
 			// a slash is also programmatically appended to every input test case
@@ -60,43 +60,37 @@ describe('Simple utils', () => {
 				`normalizeTarEntry('${input}') returned '${result}' expected '${expected}'`,
 			);
 		}
-		done();
 	});
 
-	it('should read a stream to a buffer', done => {
+	it('should read a stream to a buffer', async () => {
 		const readable = new PassThrough();
 
 		readable.write('test-string');
 		readable.end();
 
-		TarUtils.streamToBuffer(readable)
-			.then(buf => {
-				expect(buf.toString()).to.equal('test-string');
-				done();
-			})
-			.catch(done);
+		const buf = await TarUtils.streamToBuffer(readable);
+		expect(buf.toString()).to.equal('test-string');
 	});
 });
 
-describe('pipeStream', function() {
+describe('pipeStream', function () {
 	const hwm = 16333; // high water mark
 	const sourceBuf = Buffer.alloc(71000, '0123456789');
 
-	it('should resolve when the pipe operation completes', () => {
+	it('should resolve when the pipe operation completes', async () => {
 		const fromStream = new MockReadable({ highWaterMark: hwm }, sourceBuf);
 		const toStream = new MockWritable({ highWaterMark: hwm });
 
-		return TarUtils.pipePromise(fromStream, toStream).then(() => {
-			const destBuf = Buffer.concat(toStream.chunks);
-			expect(sourceBuf.compare(destBuf)).to.equal(0);
-		});
+		await TarUtils.pipePromise(fromStream, toStream);
+		const destBuf = Buffer.concat(toStream.chunks);
+		expect(sourceBuf.compare(destBuf)).to.equal(0);
 	});
 });
 
-describe('cloneTarStream', function() {
+describe('cloneTarStream', function () {
 	const hwm = 16333; // high water mark
 
-	it('should successfully clone a tar file', () => {
+	it('should successfully clone a tar file', async () => {
 		const sourceTarStream = fs.createReadStream(
 			'./tests/test-files/cloneTarStream.tar',
 			{
@@ -113,38 +107,37 @@ describe('cloneTarStream', function() {
 			['./aFolder/fileSizeZero', 0],
 		];
 
-		return TarUtils.cloneTarStream(sourceTarStream).then((pack: tar.Pack) => {
-			return new Bluebird((resolve, reject) => {
-				let i = 0;
-				const extract = tar.extract();
-				pack.on('error', reject);
-				extract.on('error', reject);
-				extract.on(
-					'entry',
-					(header: tar.Headers, stream: Readable, callback: () => void) => {
-						try {
-							const [expectedName, expectedSize] = expectedEntries[i++];
-							expect(header.name).to.equal(expectedName);
-							expect(header.size).to.equal(expectedSize);
-						} catch (error) {
-							reject(error);
-						}
-						TarUtils.drainStream(stream).then(callback, callback);
-					},
-				);
-				extract.once('finish', resolve);
-				pack.pipe(extract);
-			});
+		const pack = await TarUtils.cloneTarStream(sourceTarStream);
+		await new Promise((resolve, reject) => {
+			let i = 0;
+			const extract = tar.extract();
+			pack.on('error', reject);
+			extract.on('error', reject);
+			extract.on(
+				'entry',
+				(header: tar.Headers, stream: Readable, callback: () => void) => {
+					try {
+						const [expectedName, expectedSize] = expectedEntries[i++];
+						expect(header.name).to.equal(expectedName);
+						expect(header.size).to.equal(expectedSize);
+					} catch (error) {
+						reject(error);
+					}
+					TarUtils.drainStream(stream).then(callback, callback);
+				},
+			);
+			extract.once('finish', resolve);
+			pack.pipe(extract);
 		});
 	});
 });
 
-describe('multicastStream', function() {
+describe('multicastStream', function () {
 	this.timeout(60000);
 	const sourceBuf = Buffer.alloc(71011, '0123456789');
 	const hwm = 16384; // high water mark
 
-	it('should successfully multicast a producer stream to different-pace consumers', () => {
+	it('should successfully multicast a producer stream to different-pace consumers', async () => {
 		const fromStream = new MockReadable({ highWaterMark: hwm }, sourceBuf);
 		const toStreams: MockWritable[] = [];
 		const nStreams = 3;
@@ -154,56 +147,53 @@ describe('multicastStream', function() {
 			);
 		}
 
-		return TarUtils.multicastStream(fromStream, toStreams).then(() => {
-			for (const toStream of toStreams) {
-				const dest = Buffer.concat(toStream.chunks);
-				expect(toStream.chunks.length).to.equal(
-					Math.ceil(sourceBuf.length / hwm),
-				);
-				expect(sourceBuf.compare(dest)).to.equal(0);
-			}
-		});
+		await TarUtils.multicastStream(fromStream, toStreams);
+		for (const toStream of toStreams) {
+			const dest = Buffer.concat(toStream.chunks);
+			expect(toStream.chunks.length).to.equal(
+				Math.ceil(sourceBuf.length / hwm),
+			);
+			expect(sourceBuf.compare(dest)).to.equal(0);
+		}
 	});
 
-	it('should resolve for an empty list of destination streams', () => {
+	it('should resolve for an empty list of destination streams', async () => {
 		const fromStream = new MockReadable({ highWaterMark: hwm }, sourceBuf);
-		return TarUtils.multicastStream(fromStream, []);
+		await TarUtils.multicastStream(fromStream, []);
 	});
 
-	it('should reject when a destination stream emits an error', () => {
+	it('should reject when a destination stream emits an error', async () => {
 		const fromStream = new MockReadable({ highWaterMark: hwm }, sourceBuf);
 		const toStreams: MockWritable[] = [];
 		const nStreams = 3;
 		for (let i = 0; i < nStreams; ++i) {
 			toStreams.push(new MockWritable({ highWaterMark: hwm }, 0, i + 1));
 		}
-		return TarUtils.multicastStream(fromStream, toStreams)
-			.then(() => {
-				throw new Error(
-					'multicastStream call should have rejected, but succeeded',
-				);
-			})
-			.catch((error: Error) => {
-				expect(error.message).to.equal('write count is 1');
-			});
+		try {
+			await TarUtils.multicastStream(fromStream, toStreams);
+			throw new Error(
+				'multicastStream call should have rejected, but succeeded',
+			);
+		} catch (error) {
+			expect(error.message).to.equal('write count is 1');
+		}
 	});
 
-	it('should reject when the source stream emits an error', () => {
+	it('should reject when the source stream emits an error', async () => {
 		const fromStream = new MockReadable({ highWaterMark: hwm }, sourceBuf, 2);
 		const toStreams: MockWritable[] = [];
 		const nStreams = 3;
 		for (let i = 0; i < nStreams; ++i) {
 			toStreams.push(new MockWritable({ highWaterMark: hwm }, 0));
 		}
-		return TarUtils.multicastStream(fromStream, toStreams)
-			.then(() => {
-				throw new Error(
-					'multicastStream call should have rejected, but succeeded',
-				);
-			})
-			.catch((error: Error) => {
-				expect(error.message).to.equal('read count is 2');
-			});
+		try {
+			await TarUtils.multicastStream(fromStream, toStreams);
+			throw new Error(
+				'multicastStream call should have rejected, but succeeded',
+			);
+		} catch (error) {
+			expect(error.message).to.equal('read count is 2');
+		}
 	});
 });
 
