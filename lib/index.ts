@@ -180,12 +180,7 @@ export async function cloneTarStream(
 						}
 					} else {
 						const buf = await streamToBuffer(stream);
-						if (header.type !== 'file' && header.type !== 'contiguous-file') {
-							// "void" entries are not allowed to pass in a buffer, even an empty one, as of tar-stream 3.1.5
-							pack.entry(header, callback);
-						} else {
-							pack.entry(header, buf, callback);
-						}
+						pack.entry(header, buf, callback);
 					}
 				},
 			);
