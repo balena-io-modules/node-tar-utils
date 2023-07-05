@@ -174,6 +174,7 @@ export async function cloneTarStream(
 					if (opts?.onEntry) {
 						try {
 							await opts.onEntry(pack, header, stream);
+							callback();
 						} catch (err) {
 							callback(err);
 						}
