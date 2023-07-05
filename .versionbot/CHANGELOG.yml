@@ -1,4 +1,15 @@
 - commits:
+    - subject: Fix `cloneTarStream` when passing `onEntry` option
+      hash: 59cbcd1f9b51fd05619abfa3887d94417e431ba1
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 3.0.1
+  title: ""
+  date: 2023-07-05T15:24:10.325Z
+- commits:
     - subject: Update tar-stream to 3.x
       hash: f4e87ea24df2acb73d1227049835b992d03e0778
       body: ""
