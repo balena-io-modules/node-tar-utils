@@ -1,4 +1,15 @@
 - commits:
+    - subject: "tests: Remove no longer used Bluebird import"
+      hash: 3d767b6fc7c6cc4781cd07aeaa287b578d93fa40
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Thodoris Greasidis
+  version: 3.0.3
+  title: ""
+  date: 2025-09-19T12:40:58.145Z
+- commits:
     - subject: Update to tar-stream 3.1.6
       hash: 082499aeab9048414869b0d6d8960b7913a11dbb
       body: ""
