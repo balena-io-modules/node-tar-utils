@@ -11,7 +11,8 @@
 		"preserveConstEnums": true,
 		"pretty": true,
 		"removeComments": true,
-		"sourceMap": true
+		"sourceMap": true,
+		"skipLibCheck": true
 	},
 	"include": [
 		"lib/**/*.ts"

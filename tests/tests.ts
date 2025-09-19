@@ -17,7 +17,6 @@
 import { expect } from 'chai';
 import { PassThrough, Readable, Writable } from 'stream';
 
-import * as Bluebird from 'bluebird';
 import * as fs from 'fs';
 import * as tar from 'tar-stream';
 
