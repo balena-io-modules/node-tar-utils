@@ -1,4 +1,15 @@
 - commits:
+    - subject: Add a `throughTarStream` helper that can be used without buffering memory
+      hash: 71097226c3a1672ca453f7d61201aa7833052930
+      body: ""
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Pagan Gazzard
+  version: 3.1.0
+  title: ""
+  date: 2025-09-24T15:48:15.342Z
+- commits:
     - subject: "`cloneTarStream`: stream entries directly to the pack where possible"
       hash: 7317113a6000351683eacddcc39582e876e0adc5
       body: ""
