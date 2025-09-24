@@ -1,4 +1,15 @@
 - commits:
+    - subject: "`cloneTarStream`: stream entries directly to the pack where possible"
+      hash: 7317113a6000351683eacddcc39582e876e0adc5
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 3.0.5
+  title: ""
+  date: 2025-09-24T13:38:04.396Z
+- commits:
     - subject: Update dev dependencies
       hash: 4d67b1857344799c98500585f55c55e5e8078182
       body: ""
