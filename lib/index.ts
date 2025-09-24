@@ -160,8 +160,20 @@ export async function cloneTarStream(
 		onFinish?: (pack: tar.Pack) => void | Promise<void>;
 	},
 ): Promise<tar.Pack> {
-	const extract = tar.extract();
-	const pack = tar.pack();
+	const [extract, pack] = throughTarStream(
+		async ($pack, header, stream, callback) => {
+			if (opts?.onEntry) {
+				try {
+					await opts.onEntry($pack, header, stream);
+					callback();
+				} catch (err) {
+					callback(err);
+				}
+			} else {
+				stream.pipe($pack.entry(header, callback));
+			}
+		},
+	);
 	const origPush = pack.push;
 	pack.push = function (...args) {
 		origPush.apply(this, args);
@@ -178,31 +190,11 @@ export async function cloneTarStream(
 			sourceTarStream.on('error', sourceTarStreamOnError);
 			pack.on('error', packOnError);
 			extract.on('error', reject);
-			extract.on(
-				'entry',
-				async (
-					header: tar.Headers,
-					stream: Readable,
-					callback: tar.Callback,
-				) => {
-					if (opts?.onEntry) {
-						try {
-							await opts.onEntry(pack, header, stream);
-							callback();
-						} catch (err) {
-							callback(err);
-						}
-					} else {
-						stream.pipe(pack.entry(header, callback));
-					}
-				},
-			);
 			extract.once('finish', async () => {
 				try {
 					if (opts?.onFinish) {
 						await opts.onFinish(pack);
 					}
-					pack.finalize();
 					resolve(pack);
 				} catch (err) {
 					reject(err as Error);
@@ -214,6 +206,44 @@ export async function cloneTarStream(
 		sourceTarStream.removeListener('error', sourceTarStreamOnError ?? noop);
 		pack.removeListener('error', packOnError ?? noop);
 	}
+}
+
+/**
+ * Passes an input tar stream through to an output tar stream, calling the onEntry
+ * callback for every entry in the tar stream. This is done in a streaming fashion
+ * so `onEntry` will not be called until the output stream is being consumed. This
+ * however means that the memory will not automatically be buffered
+ * @param onEntry Callback called for every entry in the tar
+ * @returns A tuple of [extract, pack] streams. The extract stream should have the source
+ *     tar stream piped to it, and the pack stream is the output tar stream that
+ *     should be consumed by the caller. The pack stream will be finalized when the extract
+ *     stream ends.
+ */
+export function throughTarStream(
+	onEntry: (
+		pack: tar.Pack,
+		header: tar.Headers,
+		stream: Readable,
+		next: tar.Callback,
+	) => void | Promise<void>,
+) {
+	const extract = tar.extract();
+	const pack = tar.pack();
+	extract
+		.on('entry', async (header, stream, next) => {
+			try {
+				await onEntry(pack, header, stream, next);
+			} catch (err) {
+				next(err);
+			}
+		})
+		.on('error', (err) => {
+			pack.destroy(err);
+		})
+		.on('finish', () => {
+			pack.finalize();
+		});
+	return [extract, pack] as const;
 }
 
 /**
