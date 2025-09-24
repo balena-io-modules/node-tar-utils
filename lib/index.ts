@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 import * as path from 'path';
-import { Readable, Writable } from 'stream';
+import type { Readable, Writable } from 'stream';
 import * as tar from 'tar-stream';
 
 function noop() {
@@ -59,7 +59,12 @@ export async function streamToBuffer(stream: Readable): Promise<Buffer> {
 	try {
 		const buffers = await new Promise<Buffer[]>((resolve, reject) => {
 			const chunks: Buffer[] = [];
-			stream.on('end', (onEnd = () => resolve(chunks)));
+			stream.on(
+				'end',
+				(onEnd = () => {
+					resolve(chunks);
+				}),
+			);
 			stream.on('error', (onError = reject));
 			// adding a 'data' listener switches the stream to flowing mode
 			stream.on('data', (onData = (data: Buffer) => chunks.push(data)));
@@ -84,7 +89,7 @@ export async function drainStream(stream: Readable): Promise<void> {
 	let onError: ((error: Error) => void) | undefined;
 	let onEnd: (() => void) | undefined;
 	try {
-		return await new Promise<void>((resolve, reject) => {
+		await new Promise<void>((resolve, reject) => {
 			stream.on('error', (onError = reject));
 			stream.on('end', (onEnd = resolve));
 			stream.resume();
@@ -115,7 +120,12 @@ export async function pipePromise<WritableSub extends Writable>(
 		return await new Promise<WritableSub>((resolve, reject) => {
 			pipeFrom.on('error', (onError = reject));
 			pipeTo.on('error', onError);
-			pipeTo.on('finish', (onFinish = () => resolve(pipeTo)));
+			pipeTo.on(
+				'finish',
+				(onFinish = () => {
+					resolve(pipeTo);
+				}),
+			);
 			pipeFrom.pipe(pipeTo);
 		});
 	} finally {
@@ -142,15 +152,19 @@ export async function pipePromise<WritableSub extends Writable>(
 export async function cloneTarStream(
 	sourceTarStream: Readable,
 	opts?: {
-		onEntry?: (pack: tar.Pack, header: tar.Headers, stream: Readable) => void;
-		onFinish?: (pack: tar.Pack) => void;
+		onEntry?: (
+			pack: tar.Pack,
+			header: tar.Headers,
+			stream: Readable,
+		) => void | Promise<void>;
+		onFinish?: (pack: tar.Pack) => void | Promise<void>;
 	},
 ): Promise<tar.Pack> {
 	const extract = tar.extract();
 	const pack = tar.pack();
 	const origPush = pack.push;
-	pack.push = function () {
-		origPush.apply(this, arguments);
+	pack.push = function (...args) {
+		origPush.apply(this, args);
 		// Disable backpressure as we want to buffer everything in memory in order to
 		// ensure we trigger any listeners/etc that may be on the stream
 		return true;
@@ -192,7 +206,7 @@ export async function cloneTarStream(
 					pack.finalize();
 					resolve(pack);
 				} catch (err) {
-					reject(err);
+					reject(err as Error);
 				}
 			});
 			sourceTarStream.pipe(extract);
@@ -224,22 +238,25 @@ export async function multicastStream(
 	}
 	let onError: ((error: Error) => void) | undefined;
 	try {
-		return await new Promise<void>((resolve, reject) => {
+		await new Promise<void>((resolve, reject) => {
 			// Note: the 'finish' listener must be added before fromStream.pipe(toStream)
 			// is executed so the addition must be in a synchronous path
 			Promise.all(
 				toStreams.map(async (toStream: Writable) => {
 					let onFinish: (() => void) | undefined;
 					try {
-						return await new Promise<void>((toStreamResolve) =>
+						await new Promise<void>((toStreamResolve) =>
 							toStream.on('finish', (onFinish = toStreamResolve)),
 						);
+						return;
 					} finally {
 						toStream.removeListener('finish', onFinish ?? noop);
 					}
 				}),
 			)
-				.then(() => resolve())
+				.then(() => {
+					resolve();
+				})
 				.catch(reject);
 
 			fromStream.on('error', (onError = reject));

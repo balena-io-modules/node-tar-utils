@@ -6,8 +6,8 @@
   "types": "build/index.d.ts",
   "scripts": {
     "test": "npm run lint && npx mocha",
-    "lint": "balena-lint --typescript lib tests",
-    "prettify": "balena-lint --typescript --fix lib tests",
+    "lint": "balena-lint -t tsconfig.dev.json lib tests",
+    "lint-fix": "balena-lint -t tsconfig.dev.json --fix lib tests",
     "prepublish": "require-npm4-to-publish",
     "prepare": "tsc"
   },
@@ -25,11 +25,11 @@
     "tar-stream": "^3.1.6"
   },
   "devDependencies": {
-    "@balena/lint": "^6.2.2",
+    "@balena/lint": "^8.2.8",
     "@types/chai": "^4.3.5",
     "@types/mocha": "^10.0.1",
     "@types/node": "^16.18.38",
-    "@types/tar-stream": "^2.1.0",
+    "@types/tar-stream": "^3.1.4",
     "chai": "^4.3.7",
     "mocha": "^11.0.0",
     "require-npm4-to-publish": "^1.0.0",
