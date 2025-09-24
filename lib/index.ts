@@ -193,8 +193,7 @@ export async function cloneTarStream(
 							callback(err);
 						}
 					} else {
-						const buf = await streamToBuffer(stream);
-						pack.entry(header, buf, callback);
+						stream.pipe(pack.entry(header, callback));
 					}
 				},
 			);
