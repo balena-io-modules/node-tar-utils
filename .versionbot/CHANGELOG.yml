@@ -1,4 +1,15 @@
 - commits:
+    - subject: Update dev dependencies
+      hash: 4d67b1857344799c98500585f55c55e5e8078182
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 3.0.4
+  title: ""
+  date: 2025-09-24T13:12:44.510Z
+- commits:
     - subject: "tests: Remove no longer used Bluebird import"
       hash: 3d767b6fc7c6cc4781cd07aeaa287b578d93fa40
       body: ""
