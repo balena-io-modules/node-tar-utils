@@ -120,7 +120,7 @@ describe('cloneTarStream', function () {
 						expect(header.name).to.equal(expectedName);
 						expect(header.size).to.equal(expectedSize);
 					} catch (error) {
-						reject(error);
+						reject(error as Error);
 					}
 					TarUtils.drainStream(stream).then(callback, callback);
 				},
@@ -231,7 +231,11 @@ class MockWritable extends Writable {
 	public writeCount = 0;
 	public chunks: Buffer[] = [];
 
-	constructor(opts: object, public delay = 0, public errorOnCount = -1) {
+	constructor(
+		opts: object,
+		public delay = 0,
+		public errorOnCount = -1,
+	) {
 		super(opts);
 	}
 
