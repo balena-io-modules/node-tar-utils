@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 import * as path from 'path';
-import type { Readable, Writable } from 'stream';
+import { Stream, type Readable, type Writable } from 'stream';
 import * as tar from 'tar-stream';
 
 function noop() {
@@ -114,25 +114,8 @@ export async function pipePromise<WritableSub extends Writable>(
 	pipeFrom: Readable,
 	pipeTo: WritableSub,
 ): Promise<WritableSub> {
-	let onError: ((error: Error) => void) | undefined;
-	let onFinish: (() => void) | undefined;
-	try {
-		return await new Promise<WritableSub>((resolve, reject) => {
-			pipeFrom.on('error', (onError = reject));
-			pipeTo.on('error', onError);
-			pipeTo.on(
-				'finish',
-				(onFinish = () => {
-					resolve(pipeTo);
-				}),
-			);
-			pipeFrom.pipe(pipeTo);
-		});
-	} finally {
-		pipeFrom.removeListener('error', onError ?? noop);
-		pipeTo.removeListener('error', onError ?? noop);
-		pipeTo.removeListener('finish', onFinish ?? noop);
-	}
+	await Stream.promises.pipeline(pipeFrom, pipeTo);
+	return pipeTo;
 }
 
 /**
