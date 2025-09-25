@@ -1,4 +1,15 @@
 - commits:
+    - subject: Simplify `pipePromise` using the built in `Stream.promises.pipeline`
+      hash: 2f640ab45c041eb2e917e274f56c9642015319d3
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 3.1.1
+  title: ""
+  date: 2025-09-25T13:54:31.074Z
+- commits:
     - subject: Add a `throughTarStream` helper that can be used without buffering memory
       hash: 71097226c3a1672ca453f7d61201aa7833052930
       body: ""
