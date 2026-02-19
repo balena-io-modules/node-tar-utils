@@ -1,4 +1,17 @@
 - commits:
+    - subject: "Add id-token: write permission for NPM OIDC publishing"
+      hash: 1dd1deef89bdb727d740b5caad5da72d041c9081
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Kyle Harding <kyle@balena.io>
+        signed-off-by: Kyle Harding <kyle@balena.io>
+      author: Kyle Harding
+  version: 3.1.2
+  title: ""
+  date: 2026-02-19T13:43:29.594Z
+- commits:
     - subject: Simplify `pipePromise` using the built in `Stream.promises.pipeline`
       hash: 2f640ab45c041eb2e917e274f56c9642015319d3
       body: ""
