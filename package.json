@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/resin-io-modules/node-tar-utils.git"
+    "url": "git+https://github.com/balena-io-modules/node-tar-utils.git"
   },
   "author": "Cameron Diver <cameron@resin.io>",
   "license": "Apache-2.0",
