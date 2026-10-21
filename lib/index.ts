@@ -17,6 +17,7 @@
 import * as path from 'path';
 import { Stream, type Readable, type Writable } from 'stream';
 import * as tar from 'tar-stream';
+import { type Readable as StreamxReadable } from 'streamx';
 
 function noop() {
 	// noop
@@ -52,8 +53,10 @@ export function normalizeTarEntry(name: string): string {
  * streamToBuffer: Given a stream, read it into a buffer
  * @param stream
  */
-export async function streamToBuffer(stream: Readable): Promise<Buffer> {
-	let onData: ((data: Buffer) => void) | undefined;
+export async function streamToBuffer(
+	stream: Readable | StreamxReadable,
+): Promise<Buffer> {
+	let onData: ((data: unknown) => void) | undefined;
 	let onError: ((error: Error) => void) | undefined;
 	let onEnd: (() => void) | undefined;
 	try {
@@ -67,7 +70,7 @@ export async function streamToBuffer(stream: Readable): Promise<Buffer> {
 			);
 			stream.on('error', (onError = reject));
 			// adding a 'data' listener switches the stream to flowing mode
-			stream.on('data', (onData = (data: Buffer) => chunks.push(data)));
+			stream.on('data', (onData = (data) => chunks.push(data as Buffer)));
 		});
 		return Buffer.concat(buffers);
 	} finally {
@@ -85,7 +88,9 @@ export async function streamToBuffer(stream: Readable): Promise<Buffer> {
  * @param stream A readable stream to be drained
  * @return A promise that resolves when the stream is drained
  */
-export async function drainStream(stream: Readable): Promise<void> {
+export async function drainStream(
+	stream: Readable | StreamxReadable,
+): Promise<void> {
 	let onError: ((error: Error) => void) | undefined;
 	let onEnd: (() => void) | undefined;
 	try {
@@ -111,7 +116,7 @@ export async function drainStream(stream: Readable): Promise<void> {
  * @param pipeTo Stream to pipe to
  */
 export async function pipePromise<WritableSub extends Writable>(
-	pipeFrom: Readable,
+	pipeFrom: Readable | StreamxReadable,
 	pipeTo: WritableSub,
 ): Promise<WritableSub> {
 	await Stream.promises.pipeline(pipeFrom, pipeTo);
@@ -133,12 +138,12 @@ export async function pipePromise<WritableSub extends Writable>(
  *     promise which will then be awaited for.
  */
 export async function cloneTarStream(
-	sourceTarStream: Readable,
+	sourceTarStream: Readable | StreamxReadable,
 	opts?: {
 		onEntry?: (
 			pack: tar.Pack,
-			header: tar.Headers,
-			stream: Readable,
+			header: tar.Header,
+			stream: Readable | StreamxReadable,
 		) => void | Promise<void>;
 		onFinish?: (pack: tar.Pack) => void | Promise<void>;
 	},
@@ -150,10 +155,16 @@ export async function cloneTarStream(
 					await opts.onEntry($pack, header, stream);
 					callback();
 				} catch (err) {
-					callback(err);
+					callback(err as Error);
 				}
 			} else {
-				stream.pipe($pack.entry(header, callback));
+				type WidenedStreamPipe = (dest: ReturnType<tar.Pack['entry']>) => void;
+				// Readable.pipe() and StreamxReadable.pipe() differ on the second param so TS complains about them
+				// being incompatible. The `satisfies as` combo manually narrows the types to the common part,
+				// while also checking that they are indeed compatible.
+				(stream.pipe satisfies WidenedStreamPipe as WidenedStreamPipe)(
+					$pack.entry(header, callback),
+				);
 			}
 		},
 	);
@@ -180,7 +191,8 @@ export async function cloneTarStream(
 					}
 					resolve(pack);
 				} catch (err) {
-					reject(err as Error);
+					// eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+					reject(err);
 				}
 			});
 			sourceTarStream.pipe(extract);
@@ -205,9 +217,9 @@ export async function cloneTarStream(
 export function throughTarStream(
 	onEntry: (
 		pack: tar.Pack,
-		header: tar.Headers,
-		stream: Readable,
-		next: tar.Callback,
+		header: tar.Header,
+		stream: Readable | StreamxReadable,
+		next: (err?: Error | null) => void,
 	) => void | Promise<void>,
 ) {
 	const extract = tar.extract();
@@ -217,7 +229,7 @@ export function throughTarStream(
 			try {
 				await onEntry(pack, header, stream, next);
 			} catch (err) {
-				next(err);
+				next(err as Error);
 			}
 		})
 		.on('error', (err) => {
@@ -242,7 +254,7 @@ export function throughTarStream(
  * @param toStreams
  */
 export async function multicastStream(
-	fromStream: Readable,
+	fromStream: Readable | StreamxReadable,
 	toStreams: Writable[],
 ): Promise<void> {
 	if (toStreams.length === 0) {
@@ -274,7 +286,13 @@ export async function multicastStream(
 			fromStream.on('error', (onError = reject));
 			for (const toStream of toStreams) {
 				toStream.on('error', onError);
-				fromStream.pipe(toStream);
+				type WidenedStreamPipe = (dest: Writable) => void;
+				// Readable.pipe() and StreamxReadable.pipe() differ on the second param so TS complains about them
+				// being incompatible. The `satisfies as` combo manually narrows the types to the common part,
+				// while also checking that they are indeed compatible.
+				(fromStream.pipe satisfies WidenedStreamPipe as WidenedStreamPipe)(
+					toStream,
+				);
 			}
 		});
 	} finally {

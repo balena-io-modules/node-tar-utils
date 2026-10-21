@@ -22,19 +22,21 @@
   },
   "homepage": "https://github.com/resin-io-modules/node-tar-utils#readme",
   "dependencies": {
-    "tar-stream": "^3.1.6"
+    "tar-stream": "^3.2.2"
+  },
+  "peerDependencies": {
+    "streamx": "^2.28.1"
   },
   "devDependencies": {
-    "@balena/lint": "^8.2.8",
+    "@balena/lint": "^9.4.11",
     "@types/chai": "^4.3.5",
     "@types/mocha": "^10.0.1",
-    "@types/node": "^16.18.38",
-    "@types/tar-stream": "^3.1.4",
+    "@types/node": "^16.18.126",
     "chai": "^4.3.7",
     "mocha": "^11.0.0",
     "require-npm4-to-publish": "^1.0.0",
     "ts-node": "^10.9.1",
-    "typescript": "^5.1.6"
+    "typescript": "^6.0.3"
   },
   "mocha": {
     "_": "tests",

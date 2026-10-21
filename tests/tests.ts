@@ -120,7 +120,8 @@ describe('cloneTarStream', function () {
 						expect(header.name).to.equal(expectedName);
 						expect(header.size).to.equal(expectedSize);
 					} catch (error) {
-						reject(error as Error);
+						// eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+						reject(error);
 					}
 					TarUtils.drainStream(stream).then(callback, callback);
 				},
