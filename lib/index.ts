@@ -172,6 +172,10 @@ export async function cloneTarStream(
 ): Promise<tar.Pack> {
 	const [extract, pack] = throughTarStream(
 		async ($pack, header, stream, callback) => {
+			// If the clone fails part way through an entry, the entry stream is
+			// destroyed with that error, which has already been reported via the
+			// promise rejection, so avoid it also being thrown as unhandled
+			stream.on('error', noop);
 			if (opts?.onEntry) {
 				try {
 					await opts.onEntry($pack, header, stream);
@@ -180,7 +184,10 @@ export async function cloneTarStream(
 					callback(err as Error);
 				}
 			} else {
-				stream.pipe($pack.entry(header, callback));
+				const entry = $pack.entry(header, callback);
+				// Likewise for the pack's entry stream
+				entry.on('error', noop);
+				stream.pipe(entry);
 			}
 		},
 	);
@@ -210,10 +217,23 @@ export async function cloneTarStream(
 					reject(err as Error);
 				}
 			});
-			// Node's and streamx's pipe() both accept either kind of writable stream,
-			// but TS can't call pipe() on the union of their signatures
-			(sourceTarStream as StreamxReadable).pipe(extract);
+			// Use pipeline rather than pipe so that a failure on either side destroys
+			// the other, instead of leaving the source paused (and e.g. a file
+			// descriptor open) when the clone fails. The error listeners above are
+			// attached first so the original error wins over any secondary error
+			// (such as ERR_STREAM_PREMATURE_CLOSE) reported by pipeline.
+			Stream.pipeline(sourceTarStream, extract, (err) => {
+				if (err) {
+					reject(err);
+				}
+			});
 		});
+	} catch (err) {
+		// The pack is destroyed with the error of whichever stream failed, possibly
+		// after this point, but it is never returned to the caller, so don't let it
+		// be thrown as unhandled
+		pack.on('error', noop);
+		throw err;
 	} finally {
 		sourceTarStream.removeListener('error', sourceTarStreamOnError ?? noop);
 		pack.removeListener('error', packOnError ?? noop);
