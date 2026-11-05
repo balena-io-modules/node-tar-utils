@@ -23,6 +23,31 @@ function noop() {
 }
 
 /**
+ * The stream of an entry's contents, as passed to tar-stream's extract
+ * 'entry' listener (a streamx Readable, not a node one)
+ */
+export type TarEntryStream = tar.ExtractEvents['entry'][1];
+
+/**
+ * The callback that tar-stream's extract 'entry' listener must call when it
+ * is done with an entry, optionally with an error
+ */
+export type TarEntryCallback = tar.ExtractEvents['entry'][2];
+
+/**
+ * A streamx Readable, the base of tar-stream's streams (tar.Pack and
+ * TarEntryStream). tar-stream doesn't export it by name, but it is the
+ * source type of the 'pipe' event of its Extract (streamx Writable) stream.
+ */
+export type StreamxReadable = tar.ExtractEvents['pipe'][0];
+
+/**
+ * A readable stream, either a node one or a streamx one such as a tar.Pack
+ * or a TarEntryStream
+ */
+export type ReadableStreamLike = Readable | StreamxReadable;
+
+/**
  * normalizeTarEntry: Depending on how the tar archive was created,
  * filenames can be presented in several different forms, and this function
  * aims to make them all similar, for example;
@@ -52,8 +77,10 @@ export function normalizeTarEntry(name: string): string {
  * streamToBuffer: Given a stream, read it into a buffer
  * @param stream
  */
-export async function streamToBuffer(stream: Readable): Promise<Buffer> {
-	let onData: ((data: Buffer) => void) | undefined;
+export async function streamToBuffer(
+	stream: ReadableStreamLike,
+): Promise<Buffer> {
+	let onData: ((data: unknown) => void) | undefined;
 	let onError: ((error: Error) => void) | undefined;
 	let onEnd: (() => void) | undefined;
 	try {
@@ -67,7 +94,7 @@ export async function streamToBuffer(stream: Readable): Promise<Buffer> {
 			);
 			stream.on('error', (onError = reject));
 			// adding a 'data' listener switches the stream to flowing mode
-			stream.on('data', (onData = (data: Buffer) => chunks.push(data)));
+			stream.on('data', (onData = (data) => chunks.push(data as Buffer)));
 		});
 		return Buffer.concat(buffers);
 	} finally {
@@ -85,7 +112,7 @@ export async function streamToBuffer(stream: Readable): Promise<Buffer> {
  * @param stream A readable stream to be drained
  * @return A promise that resolves when the stream is drained
  */
-export async function drainStream(stream: Readable): Promise<void> {
+export async function drainStream(stream: ReadableStreamLike): Promise<void> {
 	let onError: ((error: Error) => void) | undefined;
 	let onEnd: (() => void) | undefined;
 	try {
@@ -111,7 +138,7 @@ export async function drainStream(stream: Readable): Promise<void> {
  * @param pipeTo Stream to pipe to
  */
 export async function pipePromise<WritableSub extends Writable>(
-	pipeFrom: Readable,
+	pipeFrom: ReadableStreamLike,
 	pipeTo: WritableSub,
 ): Promise<WritableSub> {
 	await Stream.promises.pipeline(pipeFrom, pipeTo);
@@ -133,12 +160,12 @@ export async function pipePromise<WritableSub extends Writable>(
  *     promise which will then be awaited for.
  */
 export async function cloneTarStream(
-	sourceTarStream: Readable,
+	sourceTarStream: ReadableStreamLike,
 	opts?: {
 		onEntry?: (
 			pack: tar.Pack,
-			header: tar.Headers,
-			stream: Readable,
+			header: tar.Header,
+			stream: TarEntryStream,
 		) => void | Promise<void>;
 		onFinish?: (pack: tar.Pack) => void | Promise<void>;
 	},
@@ -150,7 +177,7 @@ export async function cloneTarStream(
 					await opts.onEntry($pack, header, stream);
 					callback();
 				} catch (err) {
-					callback(err);
+					callback(err as Error);
 				}
 			} else {
 				stream.pipe($pack.entry(header, callback));
@@ -183,7 +210,9 @@ export async function cloneTarStream(
 					reject(err as Error);
 				}
 			});
-			sourceTarStream.pipe(extract);
+			// Node's and streamx's pipe() both accept either kind of writable stream,
+			// but TS can't call pipe() on the union of their signatures
+			(sourceTarStream as StreamxReadable).pipe(extract);
 		});
 	} finally {
 		sourceTarStream.removeListener('error', sourceTarStreamOnError ?? noop);
@@ -205,9 +234,9 @@ export async function cloneTarStream(
 export function throughTarStream(
 	onEntry: (
 		pack: tar.Pack,
-		header: tar.Headers,
-		stream: Readable,
-		next: tar.Callback,
+		header: tar.Header,
+		stream: TarEntryStream,
+		next: TarEntryCallback,
 	) => void | Promise<void>,
 ) {
 	const extract = tar.extract();
@@ -217,7 +246,7 @@ export function throughTarStream(
 			try {
 				await onEntry(pack, header, stream, next);
 			} catch (err) {
-				next(err);
+				next(err as Error);
 			}
 		})
 		.on('error', (err) => {
