@@ -4,6 +4,11 @@
   "description": "A collection of utilities which expose oft-used patterns when working with tar archives in node",
   "main": "build/index.js",
   "types": "build/index.d.ts",
+  "files": [
+    "build/",
+    "lib/",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "test": "npm run lint && npx mocha",
     "lint": "balena-lint -t tsconfig.dev.json lib tests && tsc --noEmit -p tsconfig.dev.json && tsc --noEmit -p tests/types/tsconfig.json",
