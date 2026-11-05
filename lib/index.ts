@@ -172,6 +172,10 @@ export async function cloneTarStream(
 ): Promise<tar.Pack> {
 	const [extract, pack] = throughTarStream(
 		async ($pack, header, stream, callback) => {
+			// If the clone fails part way through an entry, the entry stream is
+			// destroyed with that error, which has already been reported via the
+			// promise rejection, so avoid it also being thrown as unhandled
+			stream.on('error', noop);
 			if (opts?.onEntry) {
 				try {
 					await opts.onEntry($pack, header, stream);
@@ -180,7 +184,10 @@ export async function cloneTarStream(
 					callback(err as Error);
 				}
 			} else {
-				stream.pipe($pack.entry(header, callback));
+				const entry = $pack.entry(header, callback);
+				// Likewise for the pack's entry stream
+				entry.on('error', noop);
+				stream.pipe(entry);
 			}
 		},
 	);
@@ -191,14 +198,12 @@ export async function cloneTarStream(
 		// ensure we trigger any listeners/etc that may be on the stream
 		return true;
 	};
-	let packOnError: ((error: Error) => void) | undefined;
-	let sourceTarStreamOnError: ((error: Error) => void) | undefined;
+	let onError: ((error: Error) => void) | undefined;
 	try {
 		return await new Promise<tar.Pack>((resolve, reject) => {
-			packOnError = reject;
-			sourceTarStreamOnError = reject;
-			sourceTarStream.on('error', sourceTarStreamOnError);
-			pack.on('error', packOnError);
+			onError = reject;
+			sourceTarStream.on('error', onError);
+			pack.on('error', onError);
 			extract.on('error', reject);
 			extract.once('finish', async () => {
 				try {
@@ -210,13 +215,26 @@ export async function cloneTarStream(
 					reject(err as Error);
 				}
 			});
-			// Node's and streamx's pipe() both accept either kind of writable stream,
-			// but TS can't call pipe() on the union of their signatures
-			(sourceTarStream as StreamxReadable).pipe(extract);
+			// The error listeners above are attached first so the original error
+			// wins over any secondary error (such as ERR_STREAM_PREMATURE_CLOSE)
+			// reported by pipeline.
+			Stream.pipeline(sourceTarStream, extract, (err) => {
+				if (err) {
+					reject(err);
+				}
+			});
 		});
+	} catch (err) {
+		// The pack is destroyed with the error of whichever stream failed, possibly
+		// after this point, but it is never returned to the caller, so don't let it
+		// be thrown as unhandled
+		pack.on('error', noop);
+		throw err;
 	} finally {
-		sourceTarStream.removeListener('error', sourceTarStreamOnError ?? noop);
-		pack.removeListener('error', packOnError ?? noop);
+		if (onError != null) {
+			sourceTarStream.removeListener('error', onError);
+			pack.removeListener('error', onError);
+		}
 	}
 }
 
