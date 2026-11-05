@@ -10,7 +10,6 @@
 		"strictNullChecks": true,
 		"preserveConstEnums": true,
 		"pretty": true,
-		"removeComments": true,
 		"sourceMap": true,
 		"skipLibCheck": true
 	},
