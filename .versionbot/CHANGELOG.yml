@@ -1,4 +1,20 @@
 - commits:
+    - subject: Only publish the build output and its sources
+      hash: d482ec351fe4268846182a7cfead3a3a94748ada
+      body: |
+        Without a `files` list the published package included the test suite,
+        its 156 kB tar fixture, tsconfigs, the GitHub workflow and
+        `.versionbot/CHANGELOG.yml` (147 kB packed, 14 files). Restrict it to
+        `build/`, `lib/`, which the source map references, and `CHANGELOG.md`,
+        bringing it down to 11 kB and 8 files.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 3.1.5
+  title: ""
+  date: 2026-11-13T17:40:14.793Z
+- commits:
     - subject: Point `bugs` and `homepage` at the balena-io-modules repository
       hash: 51f4396bf66e26b11bc4e5cff8f5e054077c2998
       body: |
