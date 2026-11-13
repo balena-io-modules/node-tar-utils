@@ -1,4 +1,21 @@
 - commits:
+    - subject: Enable `strict` type checking
+      hash: a049bbe4f7781ddc15a4101b4ab0f2484e70aafa
+      body: |
+        Only `noImplicitAny` and `strictNullChecks` were on, so e.g. caught
+        `unknown` errors were passed to callbacks typed `Error` unchecked.
+        Switch to `strict` (adding `strictFunctionTypes`,
+        `strictBindCallApply`, `useUnknownInCatchVariables`, ...) and cast the
+        caught errors where they're forwarded, as is already done elsewhere in
+        `cloneTarStream`.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 3.1.8
+  title: ""
+  date: 2026-11-13T22:13:37.904Z
+- commits:
     - subject: Keep JSDoc comments in the published type declarations
       hash: f33edefa5e3e1d0ad0b05eac949ba44bb1dd6e4d
       body: |
