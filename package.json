@@ -13,7 +13,6 @@
     "test": "npm run lint && npx mocha",
     "lint": "balena-lint -t tsconfig.dev.json lib tests && tsc --noEmit -p tsconfig.dev.json && tsc --noEmit -p tests/types/tsconfig.json",
     "lint-fix": "balena-lint -t tsconfig.dev.json --fix lib tests",
-    "prepublish": "require-npm4-to-publish",
     "prepare": "tsc"
   },
   "repository": {
@@ -36,7 +35,6 @@
     "@types/node": "^16.18.38",
     "chai": "^4.3.7",
     "mocha": "^11.0.0",
-    "require-npm4-to-publish": "^1.0.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.1.6"
   },
