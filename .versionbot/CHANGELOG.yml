@@ -1,4 +1,51 @@
 - commits:
+    - subject: Use tar-stream's bundled types
+      hash: 6d8297feeb0b1f9fae085405396b1be899151b78
+      body: >
+        tar-stream 3.2.1 started shipping its own (streamx-based) typings, which
+
+        take precedence over `@types/tar-stream`. A fresh install resolves
+
+        `tar-stream@^3.1.6` to 3.2.2, so `tsc` (and so `npm install` through
+
+        `prepare`) failed: `tar.Headers` and `tar.Callback` no longer exist, and
+
+        entry streams are streamx Readables rather than node ones. Consumers got
+
+        `any` for those types in our emitted declarations, or errors without
+
+        skipLibCheck.
+
+
+        Require tar-stream ^3.2.2 (the first release that also requires a
+
+        streamx version with typings), drop `@types/tar-stream`, and use
+
+        `tar.Header` and the entry stream and callback types from
+
+        `tar.ExtractEvents`, exported as `TarEntryStream` and
+        `TarEntryCallback`.
+
+        `streamToBuffer`, `drainStream`, `pipePromise` and `cloneTarStream` now
+
+        accept streamx streams (such as `tar.Pack` and entry streams) as well as
+
+        node ones. `multicastStream` keeps requiring a node Readable, as a
+
+        streamx Readable can only pipe to one destination.
+
+
+        Add type tests under `tests/types`, checked by `npm run lint` with both
+
+        the dev and a strict tsconfig, which also type-check the tests now.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 3.1.3
+  title: ""
+  date: 2026-11-13T17:12:11.107Z
+- commits:
     - subject: "Add id-token: write permission for NPM OIDC publishing"
       hash: 1dd1deef89bdb727d740b5caad5da72d041c9081
       body: ""
