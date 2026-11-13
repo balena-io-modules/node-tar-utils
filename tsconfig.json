@@ -9,8 +9,7 @@
 		"noUnusedParameters": true,
 		"preserveConstEnums": true,
 		"pretty": true,
-		"sourceMap": true,
-		"skipLibCheck": true
+		"sourceMap": true
 	},
 	"include": [
 		"lib/**/*.ts"
