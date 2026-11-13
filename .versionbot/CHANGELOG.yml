@@ -1,4 +1,19 @@
 - commits:
+    - subject: Remove `require-npm4-to-publish`
+      hash: 1b4f64eb003c30a6a688941ead462caa2e1fed11
+      body: |
+        It guarded against publishing with npm < 4, where `prepublish` also
+        ran on `npm install`. Modern npm doesn't run `prepublish` on publish
+        at all, only on local installs, so the check is dead weight that runs
+        on every install. `prepare` already builds before publishing.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 3.1.6
+  title: ""
+  date: 2026-11-13T17:50:35.069Z
+- commits:
     - subject: Only publish the build output and its sources
       hash: d482ec351fe4268846182a7cfead3a3a94748ada
       body: |
