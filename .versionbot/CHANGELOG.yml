@@ -1,4 +1,20 @@
 - commits:
+    - subject: Keep JSDoc comments in the published type declarations
+      hash: f33edefa5e3e1d0ad0b05eac949ba44bb1dd6e4d
+      body: |
+        `removeComments` strips comments from the emitted `.d.ts` as well as
+        the JS, so consumers saw none of the documentation for the exported
+        functions (e.g. `cloneTarStream`'s `onEntry`/`onFinish` semantics or
+        `pipePromise`'s backpressure warning) in their editors. Stop removing
+        comments so the JSDoc is shipped in `build/index.d.ts`.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 3.1.7
+  title: ""
+  date: 2026-11-13T18:45:19.597Z
+- commits:
     - subject: Remove `require-npm4-to-publish`
       hash: 1b4f64eb003c30a6a688941ead462caa2e1fed11
       body: |
