@@ -1,4 +1,18 @@
 - commits:
+    - subject: Point `bugs` and `homepage` at the balena-io-modules repository
+      hash: 51f4396bf66e26b11bc4e5cff8f5e054077c2998
+      body: |
+        3e260b2 updated `repository.url` but left these on the old
+        resin-io-modules organisation, which only works through GitHub's
+        redirect.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 3.1.4
+  title: ""
+  date: 2026-11-13T17:26:11.329Z
+- commits:
     - subject: Use tar-stream's bundled types
       hash: 6d8297feeb0b1f9fae085405396b1be899151b78
       body: >
