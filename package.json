@@ -6,7 +6,7 @@
   "types": "build/index.d.ts",
   "scripts": {
     "test": "npm run lint && npx mocha",
-    "lint": "balena-lint -t tsconfig.dev.json lib tests",
+    "lint": "balena-lint -t tsconfig.dev.json lib tests && tsc --noEmit -p tsconfig.dev.json && tsc --noEmit -p tests/types/tsconfig.json",
     "lint-fix": "balena-lint -t tsconfig.dev.json --fix lib tests",
     "prepublish": "require-npm4-to-publish",
     "prepare": "tsc"
@@ -22,14 +22,13 @@
   },
   "homepage": "https://github.com/resin-io-modules/node-tar-utils#readme",
   "dependencies": {
-    "tar-stream": "^3.1.6"
+    "tar-stream": "^3.2.2"
   },
   "devDependencies": {
     "@balena/lint": "^8.2.8",
     "@types/chai": "^4.3.5",
     "@types/mocha": "^10.0.1",
     "@types/node": "^16.18.38",
-    "@types/tar-stream": "^3.1.4",
     "chai": "^4.3.7",
     "mocha": "^11.0.0",
     "require-npm4-to-publish": "^1.0.0",

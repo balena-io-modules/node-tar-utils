@@ -107,25 +107,26 @@ describe('cloneTarStream', function () {
 		];
 
 		const pack = await TarUtils.cloneTarStream(sourceTarStream);
-		await new Promise((resolve, reject) => {
+		await new Promise<void>((resolve, reject) => {
 			let i = 0;
 			const extract = tar.extract();
 			pack.on('error', reject);
 			extract.on('error', reject);
-			extract.on(
-				'entry',
-				(header: tar.Headers, stream: Readable, callback: () => void) => {
-					try {
-						const [expectedName, expectedSize] = expectedEntries[i++];
-						expect(header.name).to.equal(expectedName);
-						expect(header.size).to.equal(expectedSize);
-					} catch (error) {
-						reject(error as Error);
-					}
-					TarUtils.drainStream(stream).then(callback, callback);
-				},
-			);
-			extract.once('finish', resolve);
+			extract.on('entry', (header, stream, callback) => {
+				try {
+					const [expectedName, expectedSize] = expectedEntries[i++];
+					expect(header.name).to.equal(expectedName);
+					expect(header.size).to.equal(expectedSize);
+				} catch (error) {
+					reject(error as Error);
+				}
+				TarUtils.drainStream(stream).then(() => {
+					callback();
+				}, callback);
+			});
+			extract.once('finish', () => {
+				resolve();
+			});
 			pack.pipe(extract);
 		});
 	});
