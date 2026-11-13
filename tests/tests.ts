@@ -175,7 +175,7 @@ describe('multicastStream', function () {
 				'multicastStream call should have rejected, but succeeded',
 			);
 		} catch (error) {
-			expect(error.message).to.equal('write count is 1');
+			expect((error as Error).message).to.equal('write count is 1');
 		}
 	});
 
@@ -192,7 +192,7 @@ describe('multicastStream', function () {
 				'multicastStream call should have rejected, but succeeded',
 			);
 		} catch (error) {
-			expect(error.message).to.equal('read count is 2');
+			expect((error as Error).message).to.equal('read count is 2');
 		}
 	});
 });
