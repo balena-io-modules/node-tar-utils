@@ -1,4 +1,18 @@
 - commits:
+    - subject: Stop skipping type checks of declaration files
+      hash: 643fd4a15ab74838d8eef450d282b061eb83a5b1
+      body: |
+        `skipLibCheck` hides errors in the `.d.ts` files we compile against,
+        and types that fail to resolve there silently become `any`. Checking
+        them means issues in dependencies' typings now fail the build instead.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 3.1.9
+  title: ""
+  date: 2026-11-16T12:27:48.806Z
+- commits:
     - subject: Enable `strict` type checking
       hash: a049bbe4f7781ddc15a4101b4ab0f2484e70aafa
       body: |
