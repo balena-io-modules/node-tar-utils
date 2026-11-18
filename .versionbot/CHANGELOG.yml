@@ -1,4 +1,34 @@
 - commits:
+    - subject: Destroy the source stream when `cloneTarStream` fails
+      hash: 819d0ec2eb046801311f0d69e54e7104b15ae9b2
+      body: |
+        `cloneTarStream` connected the source to the extract stream with
+        `pipe()`. When the clone failed, because the source was not a valid
+        tar or `onEntry` threw, the promise rejected but the source was never
+        destroyed or unpiped, so it stayed paused under backpressure forever
+        and e.g. an `fs.createReadStream` kept its file descriptor open. A
+        source error likewise left extract (and hence the pack) alive.
+
+        Connect them with `stream.pipeline()` instead, so a failure on either
+        side destroys the other. The existing error listeners are attached
+        before the pipeline, so the promise still rejects with the original
+        error rather than a secondary `ERR_STREAM_PREMATURE_CLOSE`.
+
+        Destroying extract now also destroys the entry stream being read and
+        the pack, with the error. Nothing listened for it on those, which
+        would have turned an already reported failure into an uncaught
+        exception, so add no-op error listeners for the clone's own entry
+        streams and for the discarded pack.
+
+        https://balena.fibery.io/Work/Project/3083
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 3.1.10
+  title: ""
+  date: 2026-11-18T07:24:33.758Z
+- commits:
     - subject: Stop skipping type checks of declaration files
       hash: 643fd4a15ab74838d8eef450d282b061eb83a5b1
       body: |
