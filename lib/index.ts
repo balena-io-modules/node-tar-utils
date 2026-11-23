@@ -15,11 +15,119 @@
  * limitations under the License.
  */
 import * as path from 'path';
-import { Stream, type Readable, type Writable } from 'stream';
+import { Stream, finished, type Readable, type Writable } from 'stream';
+import * as streamx from 'streamx';
 import * as tar from 'tar-stream';
 
 function noop() {
 	// noop
+}
+
+/** The same error as finished() reports for a premature close */
+function prematureCloseError() {
+	return Object.assign(new Error('Premature close'), {
+		code: 'ERR_STREAM_PREMATURE_CLOSE',
+	});
+}
+
+/** The same error as a node stream reports for a write after end() */
+function writeAfterEndError() {
+	return Object.assign(new Error('write after end'), {
+		code: 'ERR_STREAM_WRITE_AFTER_END',
+	});
+}
+
+type StreamxStream = Parameters<typeof streamx.isStreamx>[0];
+function isStreamx(stream: unknown): stream is StreamxStream {
+	return streamx.isStreamx(stream as StreamxStream);
+}
+
+/**
+ * Check whether `stream` is already done before waiting for it: returns null
+ * if it has already ended ('end'), the error to fail with if it can no longer
+ * get there, or undefined if it is still live. A writable that has already
+ * ended can't receive any more data, so for 'finish' that's an error too.
+ *
+ * A destroyed stream may not have emitted its 'error' yet (that waits for its
+ * `_destroy`), so a no-op listener is added to keep the error, which is
+ * returned here, from being uncaught.
+ */
+function checkStreamDone(
+	stream: ReadableStreamLike | Writable,
+	event: 'end' | 'finish',
+): Error | null | undefined {
+	if (isStreamx(stream)) {
+		if (event === 'end' && streamx.isEnded(stream)) {
+			return null;
+		}
+		if (
+			event === 'finish' &&
+			(streamx.isFinishing(stream) || streamx.isFinished(stream))
+		) {
+			return writeAfterEndError();
+		}
+		if (stream.destroyed || stream.destroying) {
+			stream.once('error', noop);
+			return streamx.getStreamError(stream) ?? prematureCloseError();
+		}
+		return undefined;
+	}
+	if (event === 'end' && 'readableEnded' in stream && stream.readableEnded) {
+		return null;
+	}
+	if (event === 'finish' && 'writableEnded' in stream && stream.writableEnded) {
+		return writeAfterEndError();
+	}
+	if (stream.destroyed) {
+		stream.once('error', noop);
+		// `errored` is only available from node 18
+		return 'errored' in stream && stream.errored instanceof Error
+			? stream.errored
+			: prematureCloseError();
+	}
+	return undefined;
+}
+
+/**
+ * Call `callback` once `stream` emits `event` ('end' for a readable, 'finish'
+ * for a writable), errors, or closes before `event` (premature close). The
+ * callback may be called more than once, so it should only settle a promise.
+ * Returns a function that removes the listeners.
+ *
+ * finished() alone would also do, but for a node stream that destroys itself
+ * after ending it waits for 'close' too, so a slow `_destroy` delays the
+ * result, and one that never calls back hangs it. Listening to `event` directly
+ * settles as soon as the stream is done, whatever its `_destroy` does.
+ * A stream that is already done or destroyed settles straight away, as
+ * finished() would wait for a 'close' that may never come, and reports a
+ * streamx stream that was destroyed before ending as a success.
+ */
+function onStreamDone(
+	stream: ReadableStreamLike | Writable,
+	event: 'end' | 'finish',
+	callback: (err?: Error | null) => void,
+): () => void {
+	const done = checkStreamDone(stream, event);
+	if (done !== undefined) {
+		callback(done);
+		return noop;
+	}
+	// Node's finished() and both kinds of stream's on()/removeListener() work
+	// for either, but TS can't call them on the union of the signatures
+	const nodeStream = stream as Readable | Writable;
+	const onEvent = () => {
+		callback();
+	};
+	nodeStream.on(event, onEvent);
+	const cleanup = finished(
+		nodeStream,
+		event === 'end' ? { writable: false } : { readable: false },
+		callback,
+	);
+	return () => {
+		nodeStream.removeListener(event, onEvent);
+		cleanup();
+	};
 }
 
 /**
@@ -74,33 +182,32 @@ export function normalizeTarEntry(name: string): string {
 }
 
 /**
- * streamToBuffer: Given a stream, read it into a buffer
+ * streamToBuffer: Given a stream, read it into a buffer. The returned promise
+ * rejects if the stream errors or is closed before it ends (premature close).
  * @param stream
  */
 export async function streamToBuffer(
 	stream: ReadableStreamLike,
 ): Promise<Buffer> {
 	let onData: ((data: unknown) => void) | undefined;
-	let onError: ((error: Error) => void) | undefined;
-	let onEnd: (() => void) | undefined;
+	let cleanup: (() => void) | undefined;
 	try {
 		const buffers = await new Promise<Buffer[]>((resolve, reject) => {
 			const chunks: Buffer[] = [];
-			stream.on(
-				'end',
-				(onEnd = () => {
+			cleanup = onStreamDone(stream, 'end', (err) => {
+				if (err) {
+					reject(err);
+				} else {
 					resolve(chunks);
-				}),
-			);
-			stream.on('error', (onError = reject));
+				}
+			});
 			// adding a 'data' listener switches the stream to flowing mode
 			stream.on('data', (onData = (data) => chunks.push(data as Buffer)));
 		});
 		return Buffer.concat(buffers);
 	} finally {
 		stream.removeListener('data', onData ?? noop);
-		stream.removeListener('error', onError ?? noop);
-		stream.removeListener('end', onEnd ?? noop);
+		cleanup?.();
 	}
 }
 
@@ -108,22 +215,26 @@ export async function streamToBuffer(
  * Switch the given stream to flowing mode by calling its resume() method,
  * and return a promise that resolves when the stream is drained (when
  * its 'end' event is emitted). The stream contents are discarded unless
- * a 'data' handler has been previously added.
+ * a 'data' handler has been previously added. The promise rejects if the
+ * stream errors or is closed before it ends (premature close).
  * @param stream A readable stream to be drained
  * @return A promise that resolves when the stream is drained
  */
 export async function drainStream(stream: ReadableStreamLike): Promise<void> {
-	let onError: ((error: Error) => void) | undefined;
-	let onEnd: (() => void) | undefined;
+	let cleanup: (() => void) | undefined;
 	try {
 		await new Promise<void>((resolve, reject) => {
-			stream.on('error', (onError = reject));
-			stream.on('end', (onEnd = resolve));
+			cleanup = onStreamDone(stream, 'end', (err) => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve();
+				}
+			});
 			stream.resume();
 		});
 	} finally {
-		stream.removeListener('error', onError ?? noop);
-		stream.removeListener('end', onEnd ?? noop);
+		cleanup?.();
 	}
 }
 
@@ -295,36 +406,78 @@ export async function multicastStream(
 	if (toStreams.length === 0) {
 		return;
 	}
+	// Fail before piping anything if a stream is already destroyed, or a
+	// destination already ended, rather than piping into it and leaving its
+	// errors with nothing to handle them
+	const fromStreamDone = checkStreamDone(fromStream, 'end');
+	const notLive = [
+		fromStreamDone,
+		...toStreams.map((toStream) => checkStreamDone(toStream, 'finish')),
+	].find((done) => done != null);
+	if (notLive != null) {
+		throw notLive;
+	}
+	// A streamx source that has already ended doesn't end the destinations it
+	// is piped to (a node one does), so end them directly
+	const fromStreamEnded = fromStreamDone === null;
 	let onError: ((error: Error) => void) | undefined;
+	const cleanups: Array<() => void> = [];
 	try {
 		await new Promise<void>((resolve, reject) => {
 			// Note: the 'finish' listener must be added before fromStream.pipe(toStream)
 			// is executed so the addition must be in a synchronous path
 			Promise.all(
-				toStreams.map(async (toStream: Writable) => {
-					let onFinish: (() => void) | undefined;
-					try {
-						await new Promise<void>((toStreamResolve) =>
-							toStream.on('finish', (onFinish = toStreamResolve)),
-						);
-						return;
-					} finally {
-						toStream.removeListener('finish', onFinish ?? noop);
-					}
-				}),
+				toStreams.map(
+					(toStream: Writable) =>
+						new Promise<void>((toStreamResolve, toStreamReject) => {
+							cleanups.push(
+								onStreamDone(toStream, 'finish', (err) => {
+									if (err) {
+										toStreamReject(err);
+									} else {
+										toStreamResolve();
+									}
+								}),
+							);
+						}),
+				),
 			)
 				.then(() => {
 					resolve();
 				})
 				.catch(reject);
 
+			// If the source closes before it ends, the pipes never end the
+			// destinations, so they would never finish
+			cleanups.push(
+				onStreamDone(fromStream, 'end', (err) => {
+					if (err) {
+						reject(err);
+					}
+				}),
+			);
 			fromStream.on('error', (onError = reject));
 			for (const toStream of toStreams) {
 				toStream.on('error', onError);
-				fromStream.pipe(toStream);
+				if (fromStreamEnded) {
+					toStream.end();
+				} else {
+					fromStream.pipe(toStream);
+				}
 			}
 		});
+	} catch (err) {
+		// The other streams may still emit errors as they are torn down (e.g.
+		// a streamx source destroyed by its pipe when a destination closes),
+		// with nothing left to handle them once onError is removed
+		for (const stream of [fromStream, ...toStreams]) {
+			stream.on('error', noop);
+		}
+		throw err;
 	} finally {
+		cleanups.forEach((cleanup) => {
+			cleanup();
+		});
 		fromStream.removeListener('error', onError ?? noop);
 		toStreams.forEach((toStream) =>
 			toStream.removeListener('error', onError ?? noop),

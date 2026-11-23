@@ -26,6 +26,7 @@
   },
   "homepage": "https://github.com/balena-io-modules/node-tar-utils#readme",
   "dependencies": {
+    "streamx": "^2.28.1",
     "tar-stream": "^3.2.2"
   },
   "devDependencies": {
