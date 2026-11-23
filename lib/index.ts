@@ -301,7 +301,22 @@ export async function cloneTarStream(
 				stream.pipe(entry);
 			}
 		},
+		{
+			onFinish: async ($pack) => {
+				try {
+					if (opts?.onFinish) {
+						await opts.onFinish($pack);
+					}
+				} catch (err) {
+					onFinishDone?.(err as Error);
+					// throughTarStream then destroys the pack with the error
+					throw err;
+				}
+				onFinishDone?.();
+			},
+		},
 	);
+	let onFinishDone: ((err?: Error) => void) | undefined;
 	const origPush = pack.push;
 	pack.push = function (...args) {
 		origPush.apply(this, args);
@@ -316,16 +331,17 @@ export async function cloneTarStream(
 			sourceTarStream.on('error', onError);
 			pack.on('error', onError);
 			extract.on('error', reject);
-			extract.once('finish', async () => {
-				try {
-					if (opts?.onFinish) {
-						await opts.onFinish(pack);
-					}
+			onFinishDone = (err) => {
+				if (err) {
+					// Reject directly rather than through packOnError: the pack emits
+					// no 'error' if onFinish already destroyed it, and when it does,
+					// packOnError may already have been removed by then
+					pack.on('error', noop);
+					reject(err);
+				} else {
 					resolve(pack);
-				} catch (err) {
-					reject(err as Error);
 				}
-			});
+			};
 			// The error listeners above are attached first so the original error
 			// wins over any secondary error (such as ERR_STREAM_PREMATURE_CLOSE)
 			// reported by pipeline.
@@ -355,6 +371,11 @@ export async function cloneTarStream(
  * so `onEntry` will not be called until the output stream is being consumed. This
  * however means that the memory will not automatically be buffered
  * @param onEntry Callback called for every entry in the tar
+ * @param opts.onFinish Optional callback called once the source tar stream has
+ *     ended, right before pack.finalize(), allowing the caller to insert
+ *     additional tar entries. onFinish may return a promise which will then be
+ *     awaited for. If it throws or rejects, the pack stream is destroyed with
+ *     that error instead of being finalized.
  * @returns A tuple of [extract, pack] streams. The extract stream should have the source
  *     tar stream piped to it, and the pack stream is the output tar stream that
  *     should be consumed by the caller. The pack stream will be finalized when the extract
@@ -367,6 +388,7 @@ export function throughTarStream(
 		stream: TarEntryStream,
 		next: TarEntryCallback,
 	) => void | Promise<void>,
+	opts?: { onFinish?: (pack: tar.Pack) => void | Promise<void> },
 ) {
 	const extract = tar.extract();
 	const pack = tar.pack();
@@ -381,8 +403,15 @@ export function throughTarStream(
 		.on('error', (err) => {
 			pack.destroy(err);
 		})
-		.on('finish', () => {
-			pack.finalize();
+		.on('finish', async () => {
+			try {
+				if (opts?.onFinish) {
+					await opts.onFinish(pack);
+				}
+				pack.finalize();
+			} catch (err) {
+				pack.destroy(err as Error);
+			}
 		});
 	return [extract, pack] as const;
 }
