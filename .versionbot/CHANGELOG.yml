@@ -1,4 +1,51 @@
 - commits:
+    - subject: Reject on premature close in stream helpers
+      hash: 1a492d2706146396c5473f845debfceee8c982ee
+      body: |
+        `streamToBuffer` and `drainStream` only settled on 'end' or 'error',
+        and `multicastStream` waited for 'finish' on every destination. A
+        stream that is closed without ending and without an error (for example
+        `stream.destroy()`, or destroying a tar-stream extract while one of its
+        entries is being read) emitted neither, so the returned promise never
+        settled. Neither did a stream that had already ended or been destroyed
+        before the call.
+
+        Keep resolving on 'end'/'finish', and also use `stream.finished`, which
+        reports a close before 'end'/'finish' as an `ERR_STREAM_PREMATURE_CLOSE`
+        error, for node streams and the streamx streams used by tar-stream.
+        `finished` is not used on its own because for node streams that
+        destroy themselves it also waits for 'close', so a slow `_destroy`
+        would delay the result and one that never calls back would hang it.
+
+        Streams that are already done are checked first, since `finished`
+        would wait for a 'close' that may never come, and reports a streamx
+        stream that was destroyed before ending as a success. A stream that
+        has already ended resolves straight away, with an empty buffer for
+        `streamToBuffer`. One that is already destroyed rejects with its error
+        or a premature close, with a no-op 'error' listener, since its 'error'
+        may still be pending on its `_destroy`. streamx has no node-style
+        state getters, so this uses its `isEnded`/`isFinished`/`getStreamError`
+        helpers, adding `streamx` as a direct dependency (already installed
+        through tar-stream).
+
+        `multicastStream` now also watches the source stream, since a source
+        that closes early never ends the destinations it is piped to. It
+        rejects without piping if a stream is already destroyed or a
+        destination has already ended, rather than piping into it and leaving
+        the write error unhandled, and ends the destinations itself for a
+        source that has already ended, which streamx's `pipe` doesn't. When it
+        rejects, it leaves no-op 'error' listeners on the streams, as a streamx
+        source destroyed by its pipe can still emit an error afterwards.
+
+        https://balena.fibery.io/Work/Project/3083
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 3.1.11
+  title: ""
+  date: 2026-11-23T15:28:57.136Z
+- commits:
     - subject: Destroy the source stream when `cloneTarStream` fails
       hash: 819d0ec2eb046801311f0d69e54e7104b15ae9b2
       body: |
