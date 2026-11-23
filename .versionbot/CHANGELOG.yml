@@ -1,4 +1,32 @@
 - commits:
+    - subject: Run `cloneTarStream` `onFinish` before finalizing the pack
+      hash: 7034cb319b878163c107035ed4cc1ae1707bad37
+      body: |
+        Since 7109722 `cloneTarStream` is built on `throughTarStream`, whose
+        extract 'finish' listener calls `pack.finalize()`. It is registered
+        before `cloneTarStream`'s own listener that calls `opts.onFinish`, so
+        the pack was already finalized when `onFinish` ran and any
+        `pack.entry()` call there threw `already finalized or destroyed`,
+        rejecting `cloneTarStream`. This contradicted the documented behaviour
+        of calling `onFinish` right before `pack.finalize()`.
+
+        `throughTarStream` now takes an optional second parameter,
+        `{ onFinish }`. On extract 'finish' it awaits `onFinish(pack)` and then
+        finalizes the pack, or destroys the pack with the error if `onFinish`
+        throws or rejects. `cloneTarStream` passes its `onFinish` through this
+        option, resolving once it completes and rejecting if it fails. It
+        rejects with the `onFinish` error directly rather than waiting for the
+        pack 'error', which never comes if `onFinish` destroyed the pack itself.
+
+        https://balena.fibery.io/Work/Project/3083
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Pagan Gazzard
+  version: 3.2.0
+  title: ""
+  date: 2026-11-23T15:55:37.451Z
+- commits:
     - subject: Reject on premature close in stream helpers
       hash: 1a492d2706146396c5473f845debfceee8c982ee
       body: |
